@@ -1,0 +1,867 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WARDOGS Mortar Card</title>
+<style>
+  :root { --bg:#1a1d16; --panel:#24281e; --panel-2:#2c3124; --line:#3d4434; --ink:#e7e2d2; --muted:#a39b86; --gold:#c4a35a; --ok:#8faf6a; --bad:#c46a55; --warn:#d4a15a; }
+  * { box-sizing: border-box; }
+  body { margin:0; min-height:100vh; font-family:"Segoe UI", Georgia, serif; background: radial-gradient(1200px 500px at 10% -10%, #343824 0%, transparent 50%), var(--bg); color:var(--ink); }
+  header { padding:22px 22px 6px; }
+  h1 { margin:0; font-weight:600; letter-spacing:0.04em; font-size:1.5rem; }
+  h1 span { color:var(--gold); }
+  p.lead { margin:8px 0 0; color:var(--muted); max-width:70ch; line-height:1.45; }
+  .layout { display:grid; grid-template-columns:minmax(420px,560px) 1fr; gap:16px; padding:16px 22px 28px; align-items:start; }
+  .card { display:grid; gap:14px; }
+  section { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:16px 18px 18px; }
+  h2 { margin:0 0 12px; font-size:0.82rem; letter-spacing:0.14em; text-transform:uppercase; color:var(--gold); font-weight:600; }
+  .row { display:flex; flex-wrap:wrap; gap:12px; align-items:end; }
+  label { display:flex; flex-direction:column; gap:6px; font-size:0.78rem; letter-spacing:0.06em; text-transform:uppercase; color:var(--muted); }
+  input, select { background:var(--panel-2); color:var(--ink); border:1px solid var(--line); border-radius:8px; padding:10px 12px; font-size:1rem; width:140px; font-family:inherit; }
+  input[readonly] { color:var(--muted); }
+  #tgtBearing, #tgtRange, #tgtElev { color:#fff; font-weight:700; }
+  select { width:180px; }
+  input:focus, select:focus { outline:2px solid var(--gold); border-color:transparent; }
+  button { border:0; border-radius:8px; padding:10px 14px; font-family:inherit; font-size:0.95rem; cursor:pointer; }
+  button.primary { background:var(--gold); color:#1c180e; font-weight:650; }
+  button.ghost { background:transparent; color:var(--muted); border:1px solid var(--line); }
+  button:hover { filter:brightness(1.06); }
+  .note { margin:12px 0 0; color:var(--muted); font-size:0.86rem; line-height:1.4; }
+  #status { color:#fff; font-weight:700; }
+  table { width:100%; border-collapse:collapse; }
+  th, td { text-align:left; padding:10px 8px; border-bottom:1px solid var(--line); vertical-align:top; }
+  th { color:var(--muted); font-size:0.75rem; letter-spacing:0.08em; text-transform:uppercase; font-weight:600; }
+  td.num { font-variant-numeric:tabular-nums; font-family:Consolas, "Segoe UI", monospace; font-size:1.02rem; }
+  td.num.far { color:#e15b64; font-weight:700; }
+  .pill { display:inline-block; padding:2px 8px; border-radius:999px; font-size:0.75rem; letter-spacing:0.04em; }
+  .ok { background:#2d3a22; color:var(--ok); }
+  .bad { background:#3a2420; color:var(--bad); }
+  .warn { background:#3a3120; color:var(--warn); }
+  .empty { color:var(--muted); padding:8px 0 2px; }
+  .compass { font-weight:650; color:var(--gold); }
+  .map-pane { position:sticky; top:12px; height:calc(100vh - 24px); min-height:520px; background:var(--panel); border:1px solid var(--line); border-radius:12px; display:flex; flex-direction:column; overflow:hidden; }
+  .map-bar { display:flex; justify-content:space-between; gap:10px; align-items:center; padding:10px 12px; border-bottom:1px solid var(--line); color:var(--muted); font-size:0.85rem; }
+  .zoom-box { display:flex; gap:6px; align-items:center; }
+  .zoom-box button { padding:6px 10px; }
+  .map-scroll { flex:1; overflow:auto; background:#111; cursor:grab; }
+  .map-scroll.dragging { cursor:grabbing; }
+  .map-board { position:relative; width:1024px; height:1024px; }
+  .map-board img { width:100%; height:100%; display:block; object-fit:contain; background:#111; }
+  .map-missing { padding:18px; color:var(--muted); }
+  .marker { position:absolute; width:12px; height:12px; margin-left:-6px; margin-top:-6px; border-radius:50%; background:#d24b4b; border:2px solid #fff; box-shadow:0 0 0 1px #111; z-index:2; }
+  .marker.gun { background:#3ddc6a; border-color:#083014; box-shadow:0 0 0 1px #3ddc6a; width:14px; height:14px; margin-left:-7px; margin-top:-7px; }
+  .marker.temp { background:#111; border-color:#fff; width:14px; height:14px; margin-left:-7px; margin-top:-7px; border-radius:2px; }
+  .marker .tag { position:absolute; left:50%; top:14px; transform:translateX(-50%); white-space:nowrap; color:#fff; font-weight:700; font-size:12px; text-shadow:0 0 3px #000, 0 1px 2px #000; pointer-events:none; }
+  .combat { position:absolute; border:3px solid #fff; background:rgba(255,255,255,0.12); border-radius:50%; transform:translate(-50%,-50%); pointer-events:none; z-index:3; box-sizing:border-box; }
+  .map-pop { position:absolute; z-index:5; width:220px; background:var(--panel); border:1px solid var(--gold); border-radius:10px; padding:12px; box-shadow:0 10px 28px rgba(0,0,0,.45); }
+  .map-pop-coords { font-variant-numeric:tabular-nums; font-family:Consolas, "Segoe UI", monospace; font-size:0.95rem; line-height:1.45; margin-bottom:10px; }
+  .map-pop-coords span { color:var(--gold); }
+  .map-pop label input { width:100%; }
+  .map-pop .row { margin-top:10px; }
+  .map-note { padding:8px 12px 10px; color:var(--muted); font-size:0.78rem; line-height:1.4; }
+  @media (max-width:980px) { .layout { grid-template-columns:1fr; } .map-pane { position:static; height:70vh; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>WARDOGS <span>mortar card</span></h1>
+  <p class="lead">Set the tube, add targets, and read the firing solution. Save keeps the card in this browser. Export writes a JSON file you can load back. Right-click the sheet to drop a target. Name it from to set the mortar. Coordinates are X, Y.</p>
+</header>
+<div class="layout">
+<div class="card">
+  <section>
+    <h2>Card</h2>
+    <div class="row">
+      <label>Map name
+        <select id="mapName">
+          <option value="Bakurani">Bakurani</option>
+          <option value="Ozeti" selected>Ozeti</option>
+          <option value="Zestafona">Zestafona</option>
+        </select>
+      </label>
+      <label>Center X<input id="centerX" type="text" inputmode="decimal" placeholder="97.70"></label>
+      <label>Center Y<input id="centerY" type="text" inputmode="decimal" placeholder="62.47"></label>
+    </div>
+    <div class="row" style="margin-top:12px">
+      <label>Top X<input id="topX" type="text" inputmode="decimal" placeholder="97.70"></label>
+      <label>Top Y<input id="topY" type="text" inputmode="decimal" placeholder="67.95"></label>
+    </div>
+    <div class="row" style="margin-top:12px">
+      <label>Frame left X<input id="frameLeft" type="text" value="84.19" readonly></label>
+      <label>Frame top Y<input id="frameTop" type="text" value="75.63" readonly></label>
+      <label>Frame span<input id="frameSpan" type="text" value="25.33" readonly></label>
+      <label>Diameter<input id="combatDiameter" type="text" value="10.96" readonly></label>
+    </div>
+    <div class="row" style="margin-top:12px">
+      <button class="ghost" id="loadBtn" type="button">Load</button>
+      <button class="primary" id="saveBtn" type="button">Save</button>
+      <button class="ghost" id="exportBtn" type="button">Export</button>
+      <button class="ghost" id="importBtn" type="button">Load file</button>
+      <input id="importFile" type="file" accept="application/json,.json" hidden>
+    </div>
+    <p class="note" id="status">Frames are fixed per map. Center and Top are the combat circle. Coordinates are X, then Y.</p>
+  </section>
+  <section>
+    <h2>Mortar position</h2>
+    <div class="row">
+      <label>Grid X<input id="gunX" type="text" inputmode="decimal" value="80.00"></label>
+      <label>Grid Y<input id="gunY" type="text" inputmode="decimal" value="70.00"></label>
+      <label>Name<input id="gunName" type="text" value="South pines" style="width:180px"></label>
+    </div>
+    <p class="note">Map squares are 100 m. Frame left X, frame top Y, and span are hardcoded for Ozeti, Bakurani, and Zestafona. A saved file cannot change them. Working range is 132 m to 675 m. A longer shot still shows its range, in red.</p>
+  </section>
+  <section>
+    <h2>Add a target</h2>
+    <div class="row">
+      <label>Name<input id="tgtName" type="text" placeholder="Stadium front" style="width:180px"></label>
+      <label>Grid X<input id="tgtX" type="text" inputmode="decimal" placeholder="83.20"></label>
+      <label>Grid Y<input id="tgtY" type="text" inputmode="decimal" placeholder="74.10"></label>
+      <button class="primary" id="addBtn" type="button">+ Add target</button>
+      <button class="ghost" id="clearBtn" type="button">Clear targets</button>
+    </div>
+    <div class="row" style="margin-top:12px">
+      <label>Bearing<input id="tgtBearing" type="text" readonly></label>
+      <label>Range<input id="tgtRange" type="text" readonly></label>
+      <label>Elevation<input id="tgtElev" type="text" readonly></label>
+    </div>
+    <p class="note" id="tgtReadout">Leave the name blank. These three boxes fill from the tube to that grid point.</p>
+  </section>
+  <section>
+    <h2>Solutions</h2>
+    <div id="empty" class="empty">No targets yet. Add one with the + button, or right-click the sheet.</div>
+    <table id="board" hidden>
+      <thead><tr><th>Target</th><th>Bearing</th><th>Range</th><th>Elevation</th><th>Call</th><th></th></tr></thead>
+      <tbody id="rows"></tbody>
+    </table>
+  </section>
+  <p class="note">Community L81 table, working range 675 m. Flat ground only. A short round means dial fewer mils. Solutions sort by target name.</p>
+  <section>
+    <h2>Help</h2>
+    <p class="note">WARDOGS mortar card, a Rivenword Productions html created for WARDOGS. Prompted by SCook using Grok. The maps will need some work but are fairly accurate. The center is not always in the same place but the coordinates don't change.</p>
+    <p class="note"><strong>Map sheets</strong><br>
+    Choose Bakurani, Ozeti, or Zestafona. The sheet loads from the folder this page is hosted in.<br>
+    Ozeti uses ozeti-map.png. Bakurani uses bakurani-map.png. Zestafona uses zestafona_map.png, then zestafona-map.png if that is missing.<br>
+    Center X and Center Y, with Top X and Top Y, set the combat circle. The circle moves between matches. The grid coordinates do not.<br>
+    Frame left X, frame top Y, and span are fixed per map. A saved card cannot change them.<br>
+    Coordinates are X, then Y. One grid square is 100 m. X grows east. Y grows north.</p>
+    <p class="note"><strong>Mortar and targets</strong><br>
+    Mortar position is Grid X, Grid Y, and a name. The mortar is the green dot, with its name under it.<br>
+    Add a target with a name, Grid X, and Grid Y. It joins the solution list and gets a red dot with its name under it.<br>
+    Leave the name blank and click Add target for a temporary read. It shows Bearing, Range, and Elevation in the Add a target panel, and drops a black plus. It is not added to the list.<br>
+    Right-click the sheet. The window shows X, then Y. Add Target with a name drops a red dot. Name it from or here to move the mortar to that point. Name it center to set the combat center. Leave the name blank to show the same temporary read.<br>
+    Moving the mortar, from the boxes or from the sheet, refreshes every solution, including the blank-name read.</p>
+    <p class="note"><strong>Solutions</strong><br>
+    Each row shows bearing in degrees and a compass direction, range in meters, elevation in mils, and a range call.<br>
+    Working range is 132 m to 675 m, from the community L81 table. A longer shot still shows its range, in red. Flat ground only.<br>
+    Solutions sort by target name.</p>
+    <p class="note"><strong>Save, export, and load</strong><br>
+    Save and Load keep the card in this browser, one card per map. Selecting a map loads that map's JSON from this folder if it is there, otherwise the browser save.<br>
+    Export writes the card as map-mortar-card.json.<br>
+    Load file opens a JSON file. The file's own map name is checked. A Bakurani card will not load while Ozeti is selected.</p>
+    <p class="note"><strong>Sheet controls</strong><br>
+    Drag to pan. The wheel zooms on the cursor. The white circle is the combat area for that map's fixed diameter.</p>
+  </section>
+</div>
+<aside class="map-pane" id="mapPane">
+  <div class="map-bar"><span id="mapLabel">Ozeti</span><span class="zoom-box"><button class="ghost" id="zoomOut" type="button">-</button><span id="zoomLabel">100%</span><button class="ghost" id="zoomIn" type="button">+</button></span></div>
+  <div class="map-scroll"><div class="map-board" id="mapBoard"></div></div>
+  <div class="map-note">Right-click the sheet. Add Target drops a red dot. Name it from to set the mortar. Name it center to set Center X and Center Y. The mortar is the green dot. The white dot is Center. The white circle uses that map's fixed diameter. Frames are fixed. Keep ozeti-map.png, bakurani-map.png, and zestafona_map.png in this folder.</div>
+  <div id="mapPop" class="map-pop" hidden>
+    <div class="map-pop-coords" id="popCoords"></div>
+    <label>Name<input id="popName" type="text" placeholder="Name, from, or center"></label>
+    <div class="row"><button class="primary" id="popAdd" type="button">Add Target</button><button class="ghost" id="popCancel" type="button">Cancel</button></div>
+  </div>
+</aside>
+</div>
+<script>
+
+const TABLE = [
+  [132,850],[140,840],[151,830],[163,820],[175,810],[187,800],[198,790],[208,780],
+  [219,770],[229,760],[239,750],[250,740],[260,730],[270,720],[280,710],[290,700],
+  [300,690],[310,680],[319,670],[329,660],[339,650],[348,640],[358,630],[367,620],
+  [376,610],[385,600],[394,590],[403,580],[412,570],[420,560],[429,550],[437,540],
+  [446,530],[454,520],[462,510],[470,500],[478,490],[486,480],[494,470],[501,460],
+  [509,450],[516,440],[524,430],[531,420],[538,410],[545,400],[552,390],[559,380],
+  [565,370],[572,360],[578,350],[585,340],[591,330],[597,320],[603,310],[609,300],
+  [615,290],[620,280],[626,270],[631,260],[636,250],[641,240],[646,230],[651,220],
+  [656,210],[661,200],[666,190],[670,180],[675,170]
+];
+const STORE = "wardogs-mortar-cards";
+const MAP_MAX = 160;
+const COMBAT_DIAMETER = {
+  ozeti: "10.96",
+  bakurani: "10.96",
+  zestafona: "10.96"
+};
+const FRAME_DEFAULTS = {
+  ozeti: { left: "84.19", top: "75.63", span: "25.33" },
+  bakurani: { left: "67.53", top: "83.02", span: "26.80" },
+  zestafona: { left: "55.54", top: "117.01", span: "25.76" }
+};
+function frameOf() {
+  const key = slug();
+  const fallback = FRAME_DEFAULTS[key] || { left: "0", top: "160", span: "160" };
+  const left = parseCoord(document.getElementById("frameLeft").value);
+  const top = parseCoord(document.getElementById("frameTop").value);
+  const spanRaw = parseCoord(document.getElementById("frameSpan").value);
+  const span = spanRaw == null || spanRaw === 0 ? Number(fallback.span) : spanRaw;
+  const img = document.querySelector("#mapBoard img");
+  const aspect = img && img.naturalWidth && img.naturalHeight ? img.naturalHeight / img.naturalWidth : 1;
+  return {
+    left: left == null ? Number(fallback.left) : left,
+    top: top == null ? Number(fallback.top) : top,
+    span: span,
+    ySpan: span * aspect
+  };
+}
+function applyFrame() {
+  const key = slug();
+  const frame = FRAME_DEFAULTS[key] || { left: "0", top: "160", span: "160" };
+  document.getElementById("frameLeft").value = frame.left;
+  document.getElementById("frameTop").value = frame.top;
+  document.getElementById("frameSpan").value = frame.span;
+  document.getElementById("combatDiameter").value = COMBAT_DIAMETER[key] || "10.96";
+}
+const targets = [];
+let pending = null;
+
+function milFor(range) {
+  if (range < TABLE[0][0] || range > TABLE[TABLE.length - 1][0]) return null;
+  for (let i = 0; i < TABLE.length - 1; i++) {
+    const a = TABLE[i], b = TABLE[i + 1];
+    if (range >= a[0] && range <= b[0]) {
+      const t = (range - a[0]) / (b[0] - a[0]);
+      return a[1] + t * (b[1] - a[1]);
+    }
+  }
+  return TABLE[TABLE.length - 1][1];
+}
+function compass(deg) {
+  const dirs = ["N","NNE","NE","ENE","E","ESE","SE","SSE","S","SSW","SW","WSW","W","WNW","NW","NNW"];
+  return dirs[Math.round(deg / 22.5) % 16];
+}
+function solve(gx, gy, tx, ty) {
+  const dx = tx - gx;
+  const dy = ty - gy;
+  const meters = 100 * Math.hypot(dx, dy);
+  let deg = Math.atan2(dx, dy) * 180 / Math.PI;
+  if (deg < 0) deg += 360;
+  if (meters < 1) deg = 0;
+  return { meters: meters, deg: deg, azMil: deg * 6400 / 360, mil: milFor(meters) };
+}
+function callFor(meters) {
+  if (meters < 132) return { cls: "bad", text: "Too close" };
+  if (meters > 675) return { cls: "bad", text: "Out of range" };
+  if (meters < 180 || meters > 640) return { cls: "warn", text: "Edge of tube" };
+  return { cls: "ok", text: "In range" };
+}
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, function (c) {
+    return "&#" + c.charCodeAt(0) + ";";
+  });
+}
+function parseCoord(raw) {
+  const text = String(raw).trim().replace(",", ".");
+  if (!text) return null;
+  const n = Number(text);
+  return Number.isFinite(n) ? n : null;
+}
+function setStatus(msg) {
+  document.getElementById("status").textContent = msg;
+}
+function slug() {
+  return document.getElementById("mapName").value.trim().toLowerCase().replace(/[^a-z0-9]+/g, "");
+}
+function readStore() {
+  try { return JSON.parse(localStorage.getItem(STORE) || "{}"); }
+  catch (e) { return {}; }
+}
+function writeStore(data) {
+  localStorage.setItem(STORE, JSON.stringify(data));
+}
+function cardPayload() {
+  return {
+    mapName: document.getElementById("mapName").value,
+    gunName: document.getElementById("gunName").value,
+    gunX: document.getElementById("gunX").value,
+    gunY: document.getElementById("gunY").value,
+    centerY: document.getElementById("centerY").value,
+    topX: document.getElementById("topX").value,
+    topY: document.getElementById("topY").value,
+    frameLeft: document.getElementById("frameLeft").value,
+    frameTop: document.getElementById("frameTop").value,
+    frameSpan: document.getElementById("frameSpan").value,
+    combatDiameter: document.getElementById("combatDiameter").value,
+    centerX: document.getElementById("centerX").value,
+    targets: targets.map(function (t) {
+      return { name: t.name, x: t.x, y: t.y, gx: t.gx, gy: t.gy };
+    })
+  };
+}
+function applyCard(card) {
+  if (card.mapName) document.getElementById("mapName").value = card.mapName;
+  document.getElementById("gunName").value = card.gunName || "";
+  document.getElementById("gunX").value = card.gunX || "";
+  document.getElementById("gunY").value = card.gunY || "";
+  document.getElementById("centerY").value = card.centerY || "";
+  document.getElementById("centerX").value = card.centerX || "";
+  document.getElementById("topX").value = card.topX || "";
+  document.getElementById("topY").value = card.topY || "";
+  applyFrame();
+  if (card.combatDiameter) document.getElementById("combatDiameter").value = card.combatDiameter;
+  targets.length = 0;
+  (card.targets || []).forEach(function (t) { targets.push(t); });
+  showMap();
+  render();
+  revealLoaded();
+}
+function revealLoaded() {
+  const scroll = document.querySelector(".map-scroll");
+  const board = document.getElementById("mapBoard");
+  const gx = parseCoord(document.getElementById("gunX").value);
+  const gy = parseCoord(document.getElementById("gunY").value);
+  const cx = parseCoord(document.getElementById("centerX").value);
+  const cy = parseCoord(document.getElementById("centerY").value);
+  const x = gx == null ? cx : gx;
+  const y = gy == null ? cy : gy;
+  if (x == null || y == null || !board.offsetWidth) return;
+  const frame = sheetFrame();
+  const frameGrid = frameOf();
+  const u = frame.left + ((x - frameGrid.left) / frameGrid.span) * frame.width;
+  const v = frame.top + ((frameGrid.top - y) / frameGrid.ySpan) * frame.height;
+  scroll.scrollLeft = u * board.offsetWidth - scroll.clientWidth / 2;
+  scroll.scrollTop = v * board.offsetHeight - scroll.clientHeight / 2;
+}
+function saveCard() {
+  const key = slug();
+  if (!key) {
+    setStatus("Pick a map name before saving.");
+    return;
+  }
+  const data = readStore();
+  data[key] = cardPayload();
+  writeStore(data);
+  setStatus("Saved " + data[key].mapName + " with " + targets.length + " target(s).");
+}
+function loadCard() {
+  const key = slug();
+  const card = readStore()[key];
+  if (!card) {
+    setStatus("No saved card for " + (document.getElementById("mapName").value.trim() || "that map") + ". Choose a JSON file.");
+    document.getElementById("importFile").click();
+    return;
+  }
+  try {
+    applyCard(card);
+    setStatus("Loaded " + (card.mapName || key) + " with " + targets.length + " target(s).");
+  } catch (e) {
+    setStatus("Load failed: " + e.message);
+  }
+}
+function exportCard() {
+  const key = slug() || "card";
+  const blob = new Blob([JSON.stringify(cardPayload(), null, 2)], { type: "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = key + "-mortar-card.json";
+  a.click();
+  URL.revokeObjectURL(a.href);
+  setStatus("Exported " + a.download + ".");
+}
+function importCard(file) {
+  const reader = new FileReader();
+  reader.onload = function () {
+    let card;
+    try { card = JSON.parse(reader.result); }
+    catch (e) {
+      setStatus("That file is not a mortar card JSON.");
+      return;
+    }
+    const selected = document.getElementById("mapName").value.trim();
+    if (card.mapName && card.mapName.toLowerCase() !== selected.toLowerCase()) {
+      clearCardFields();
+      applyFrame();
+      showMap();
+      render();
+      setStatus("That file is for " + card.mapName + ", not " + selected + ". Mortar and solutions cleared.");
+      return;
+    }
+    applyCard(card);
+    const key = slug();
+    if (key) {
+      const data = readStore();
+      data[key] = cardPayload();
+      writeStore(data);
+    }
+    setStatus("Loaded file for " + (card.mapName || "the card") + " with " + targets.length + " target(s).");
+  };
+  reader.readAsText(file);
+}
+function sheetFrame() {
+  const board = document.getElementById("mapBoard");
+  const img = board.querySelector("img");
+  let left = 0, top = 0, width = 1, height = 1;
+  if (img && img.naturalWidth && img.naturalHeight) {
+    const boardRatio = board.clientWidth / board.clientHeight;
+    const imageRatio = img.naturalWidth / img.naturalHeight;
+    if (imageRatio > boardRatio) {
+      height = boardRatio / imageRatio;
+      top = (1 - height) / 2;
+    } else if (imageRatio < boardRatio) {
+      width = imageRatio / boardRatio;
+      left = (1 - width) / 2;
+    }
+  }
+  return { left: left, top: top, width: width, height: height };
+}
+function placeDot(cls, x, y, title, label) {
+  const board = document.getElementById("mapBoard");
+  const frame = sheetFrame();
+  const dot = document.createElement("div");
+  const frameGrid = frameOf();
+  const u = frame.left + ((Number(x) - frameGrid.left) / frameGrid.span) * frame.width;
+  const v = frame.top + ((frameGrid.top - Number(y)) / frameGrid.ySpan) * frame.height;
+  dot.className = "marker " + cls;
+  dot.title = title;
+  dot.style.left = (u * 100) + "%";
+  dot.style.top = (v * 100) + "%";
+  if (label) {
+    const tag = document.createElement("span");
+    tag.className = "tag";
+    tag.textContent = label;
+    dot.appendChild(tag);
+  }
+  board.appendChild(dot);
+}
+function paintMarkers() {
+  const board = document.getElementById("mapBoard");
+  board.querySelectorAll(".marker").forEach(function (n) { n.remove(); });
+  const cy = parseCoord(document.getElementById("centerY").value);
+  const cx = parseCoord(document.getElementById("centerX").value);
+  const ty = parseCoord(document.getElementById("topY").value);
+  const tx = parseCoord(document.getElementById("topX").value);
+  if (cy != null && cx != null && ty != null && tx != null) {
+    placeDot("pin", cx, cy, "Center  X " + cx.toFixed(2) + ", Y " + cy.toFixed(2));
+    placeDot("pin", tx, ty, "Top  X " + tx.toFixed(2) + ", Y " + ty.toFixed(2));
+  } else if (cy != null && cx != null) {
+    placeDot("pin", cx, cy, "Center  X " + cx.toFixed(2) + ", Y " + cy.toFixed(2));
+  }
+  const gy = parseCoord(document.getElementById("gunY").value);
+  const gx = parseCoord(document.getElementById("gunX").value);
+  if (gy != null && gx != null) {
+    const gunName = document.getElementById("gunName").value.trim() || "Mortar";
+    placeDot("gun", gx, gy, gunName + "  X " + gx.toFixed(2) + ", Y " + gy.toFixed(2), gunName);
+  }
+  targets.forEach(function (t) {
+    placeDot("", t.x, t.y, t.name + "  X " + Number(t.x).toFixed(2) + ", Y " + Number(t.y).toFixed(2), t.name);
+  });
+  paintCombat();
+}
+function paintCombat() {
+  const board = document.getElementById("mapBoard");
+  board.querySelectorAll(".combat").forEach(function (n) { n.remove(); });
+  const cx = parseCoord(document.getElementById("centerX").value);
+  const cy = parseCoord(document.getElementById("centerY").value);
+  const tx = parseCoord(document.getElementById("topX").value);
+  const ty = parseCoord(document.getElementById("topY").value);
+  if (cx == null || cy == null) return;
+  const diameter = parseCoord(document.getElementById("combatDiameter").value);
+  if (diameter == null || diameter < 0.01) return;
+  const radius = diameter / 2;
+  const frame = sheetFrame();
+  const frameGrid = frameOf();
+  if (!frameGrid.span) return;
+  const u = frame.left + ((cx - frameGrid.left) / frameGrid.span) * frame.width;
+  const v = frame.top + ((frameGrid.top - cy) / frameGrid.ySpan) * frame.height;
+  const ring = document.createElement("div");
+  const size = (2 * radius / frameGrid.span) * frame.width * 100;
+  ring.className = "combat";
+  ring.title = "Combat area  radius " + Math.round(radius * 100) + " m";
+  ring.style.width = size + "%";
+  ring.style.height = size + "%";
+  ring.style.left = (u * 100) + "%";
+  ring.style.top = (v * 100) + "%";
+  board.appendChild(ring);
+}
+function sortTargets() {
+  targets.sort(function (a, b) {
+    return String(a.name).localeCompare(String(b.name), undefined, { sensitivity: "base" });
+  });
+}
+function render() {
+  sortTargets();
+  const body = document.getElementById("rows");
+  const board = document.getElementById("board");
+  const empty = document.getElementById("empty");
+  body.innerHTML = "";
+  if (!targets.length) {
+    board.hidden = true;
+    empty.hidden = false;
+  } else {
+    board.hidden = false;
+    empty.hidden = true;
+    targets.forEach(function (t, i) {
+      const s = solve(t.gx, t.gy, t.x, t.y);
+      const call = callFor(s.meters);
+      const elev = s.mil == null ? "n/a" : Math.round(s.mil) + " mil";
+      const tr = document.createElement("tr");
+      tr.innerHTML =
+        "<td><strong>" + escapeHtml(t.name) + "</strong><br><span style=\"color:#a39b86\">target X " +
+        Number(t.x).toFixed(2) + ", Y " + Number(t.y).toFixed(2) + "<br>gun X " + Number(t.gx).toFixed(2) + ", Y " + Number(t.gy).toFixed(2) +
+        "</span></td><td class=\"num\"><span class=\"compass\">" + s.deg.toFixed(1) + "°</span> " +
+        compass(s.deg) + "<br><span style=\"color:#a39b86\">" + Math.round(s.azMil) +
+        " az mil</span></td><td class=\"num" + (s.meters > 675 ? " far" : "") + "\">" + s.meters.toFixed(0) +
+        " m</td><td class=\"num\">" + elev + "</td><td><span class=\"pill " + call.cls + "\">" +
+        call.text + "</span></td><td><button class=\"ghost\" data-i=\"" + i + "\" type=\"button\">Remove</button></td>";
+      body.appendChild(tr);
+    });
+    body.querySelectorAll("button").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        targets.splice(Number(btn.dataset.i), 1);
+        render();
+      });
+    });
+  }
+  paintMarkers();
+}
+function setCenter(x, y) {
+  document.getElementById("centerX").value = x.toFixed(2);
+  document.getElementById("centerY").value = y.toFixed(2);
+  const diameter = document.getElementById("combatDiameter").value;
+  setStatus("Center set from the sheet. X " + x.toFixed(2) + ", Y " + y.toFixed(2) + ". Diameter " + diameter + ".");
+  paintMarkers();
+}
+function setMortar(x, y) {
+  document.getElementById("gunY").value = y.toFixed(2);
+  document.getElementById("gunX").value = x.toFixed(2);
+  document.getElementById("gunName").value = "from";
+  targets.forEach(function (t) { t.gx = x; t.gy = y; });
+  setStatus("Mortar set from the sheet. X " + x.toFixed(2) + ", Y " + y.toFixed(2) + ".");
+  render();
+}
+function pushTarget(name, x, y) {
+  const gx = parseCoord(document.getElementById("gunX").value);
+  const gy = parseCoord(document.getElementById("gunY").value);
+  if (gx == null || gy == null) {
+    setStatus("Need the mortar Grid X and Grid Y first.");
+    return false;
+  }
+  const label = name || "Target " + (targets.length + 1);
+  targets.push({ name: label, x: x, y: y, gx: gx, gy: gy });
+  const s = solve(gx, gy, x, y);
+  setStatus("Added " + label + ". " + s.meters.toFixed(0) + " m at " + s.deg.toFixed(1) + " degrees.");
+  render();
+  return true;
+}
+function showShot(x, y) {
+  const bearing = document.getElementById("tgtBearing");
+  const range = document.getElementById("tgtRange");
+  const elevBox = document.getElementById("tgtElev");
+  const note = document.getElementById("tgtReadout");
+  const gx = parseCoord(document.getElementById("gunX").value);
+  const gy = parseCoord(document.getElementById("gunY").value);
+  if (x == null || y == null || gx == null || gy == null) {
+    bearing.value = "";
+    range.value = "";
+    elevBox.value = "";
+    range.style.color = "";
+    note.textContent = "Leave the name blank. These three boxes fill from the tube to that grid point.";
+    return null;
+  }
+  const s = solve(gx, gy, x, y);
+  const elev = s.mil == null ? "n/a" : Math.round(s.mil) + " mil";
+  bearing.value = s.deg.toFixed(1) + "° " + compass(s.deg);
+  range.value = s.meters.toFixed(0) + " m";
+  range.style.color = s.meters > 675 ? "#e15b64" : "";
+  elevBox.value = elev;
+  note.textContent = "X " + Number(x).toFixed(2) + ", Y " + Number(y).toFixed(2);
+  return s;
+}
+function previewTarget() {
+  const name = document.getElementById("tgtName").value.trim();
+  if (name) return;
+  showShot(parseCoord(document.getElementById("tgtX").value), parseCoord(document.getElementById("tgtY").value));
+}
+function addTarget() {
+  const x = parseCoord(document.getElementById("tgtX").value);
+  const y = parseCoord(document.getElementById("tgtY").value);
+  if (x == null || y == null) {
+    setStatus("Need both target Grid X and Grid Y.");
+    return;
+  }
+  const s = showShot(x, y);
+  const name = document.getElementById("tgtName").value.trim();
+  if (!name) {
+    placeDot("temp", x, y, "Temporary read  X " + x.toFixed(2) + ", Y " + y.toFixed(2), "+");
+    setStatus("Temporary read. Not added to the list.");
+    return;
+  }
+  if (!pushTarget(name, x, y)) return;
+  document.getElementById("tgtName").value = "";
+  document.getElementById("tgtX").value = "";
+  document.getElementById("tgtY").value = "";
+}
+function closePop() {
+  pending = null;
+  document.getElementById("mapPop").hidden = true;
+}
+function gridFromEvent(e) {
+  const board = document.getElementById("mapBoard");
+  const r = board.getBoundingClientRect();
+  const frame = sheetFrame();
+  if (!r.width || !r.height) return null;
+  const u = (e.clientX - r.left) / r.width;
+  const v = (e.clientY - r.top) / r.height;
+  const su = (u - frame.left) / frame.width;
+  const sv = (v - frame.top) / frame.height;
+  if (su < 0 || su > 1 || sv < 0 || sv > 1) return null;
+  const frameGrid = frameOf();
+  return {
+    x: frameGrid.left + su * frameGrid.span,
+    y: frameGrid.top - sv * frameGrid.ySpan
+  };
+}
+function openPop(e, coord) {
+  const pop = document.getElementById("mapPop");
+  const pane = document.getElementById("mapPane");
+  const pr = pane.getBoundingClientRect();
+  pending = coord;
+  document.getElementById("popCoords").innerHTML =
+    "<span>X</span> " + coord.x.toFixed(2) + "<br><span>Y</span> " + coord.y.toFixed(2);
+  document.getElementById("popName").value = "";
+  pop.hidden = false;
+  const pad = 8;
+  let left = e.clientX - pr.left + 8;
+  let top = e.clientY - pr.top + 8;
+  if (left + 220 > pr.width - pad) left = Math.max(pad, pr.width - 220 - pad);
+  if (top + 168 > pr.height - pad) top = Math.max(pad, e.clientY - pr.top - 168);
+  pop.style.left = left + "px";
+  pop.style.top = top + "px";
+  document.getElementById("popName").focus();
+}
+["tgtX", "tgtY", "tgtName", "gunX", "gunY"].forEach(function (id) {
+  document.getElementById(id).addEventListener("input", previewTarget);
+});
+document.getElementById("addBtn").addEventListener("click", addTarget);
+document.getElementById("tgtY").addEventListener("keydown", function (e) {
+  if (e.key === "Enter") addTarget();
+});
+document.getElementById("clearBtn").addEventListener("click", function () {
+  targets.length = 0;
+  setStatus("Targets cleared.");
+  render();
+});
+document.getElementById("saveBtn").addEventListener("click", saveCard);
+document.getElementById("loadBtn").addEventListener("click", loadCard);
+document.getElementById("exportBtn").addEventListener("click", exportCard);
+document.getElementById("importBtn").addEventListener("click", function () {
+  document.getElementById("importFile").click();
+});
+document.getElementById("importFile").addEventListener("change", function () {
+  if (this.files && this.files[0]) importCard(this.files[0]);
+  this.value = "";
+});
+["gunX", "gunY"].forEach(function (id) {
+  document.getElementById(id).addEventListener("input", function () {
+    const gx = parseCoord(document.getElementById("gunX").value);
+    const gy = parseCoord(document.getElementById("gunY").value);
+    if (gx == null || gy == null) return;
+    targets.forEach(function (t) { t.gx = gx; t.gy = gy; });
+    render();
+  });
+});
+document.getElementById("popCancel").addEventListener("click", closePop);
+document.getElementById("popAdd").addEventListener("click", function () {
+  if (!pending) return;
+  const name = document.getElementById("popName").value.trim();
+  if (name.toLowerCase() === "from" || name.toLowerCase() === "here") {
+    setMortar(pending.x, pending.y);
+    closePop();
+    return;
+  }
+  if (name.toLowerCase() === "center") {
+    setCenter(pending.x, pending.y);
+    closePop();
+    return;
+  }
+  if (!name) {
+    showShot(pending.x, pending.y);
+    placeDot("temp", pending.x, pending.y, "Temporary read  X " + pending.x.toFixed(2) + ", Y " + pending.y.toFixed(2), "+");
+    setStatus("Temporary read. Not added to the list.");
+    closePop();
+    return;
+  }
+  if (pushTarget(name, pending.x, pending.y)) closePop();
+});
+document.getElementById("popName").addEventListener("keydown", function (e) {
+  if (e.key === "Enter") document.getElementById("popAdd").click();
+  if (e.key === "Escape") closePop();
+});
+document.getElementById("mapPop").addEventListener("contextmenu", function (e) {
+  e.preventDefault();
+});
+document.addEventListener("keydown", function (e) {
+  if (e.key === "Escape") closePop();
+});
+const ZOOMS = [1, 1.5, 2, 3, 4];
+let zoom = 1;
+let pointer = null;
+function applyZoom(anchor) {
+  const board = document.getElementById("mapBoard");
+  const scroll = document.querySelector(".map-scroll");
+  const rect = scroll.getBoundingClientRect();
+  const point = anchor || pointer;
+  let fx = 0.5;
+  let fy = 0.5;
+  let viewX = rect.width / 2;
+  let viewY = rect.height / 2;
+  if (point && board.offsetWidth) {
+    viewX = point.x - rect.left;
+    viewY = point.y - rect.top;
+    fx = (scroll.scrollLeft + viewX) / board.offsetWidth;
+    fy = (scroll.scrollTop + viewY) / board.offsetHeight;
+  }
+  board.style.width = (1024 * zoom) + "px";
+  board.style.height = (1024 * zoom) + "px";
+  document.getElementById("zoomLabel").textContent = Math.round(zoom * 100) + "%";
+  scroll.scrollLeft = fx * board.offsetWidth - viewX;
+  scroll.scrollTop = fy * board.offsetHeight - viewY;
+  paintMarkers();
+}
+function stepZoom(dir, anchor) {
+  const i = ZOOMS.indexOf(zoom);
+  const next = dir > 0 ? Math.min(ZOOMS.length - 1, i + 1) : Math.max(0, i - 1);
+  zoom = ZOOMS[next] || zoom;
+  applyZoom(anchor);
+}
+function showMap() {
+  const name = document.getElementById("mapName").value.trim();
+  const board = document.getElementById("mapBoard");
+  document.getElementById("mapLabel").textContent = name || "Map";
+  board.innerHTML = "";
+  const file = name.toLowerCase() === "bakurani" ? "bakurani-map.png" : name.toLowerCase() === "ozeti" ? "ozeti-map.png" : name.toLowerCase() === "zestafona" ? "zestafona_map.png" : "";
+  if (file) {
+    const img = document.createElement("img");
+    img.alt = name;
+    img.src = file;
+    img.onload = function () { paintMarkers(); revealLoaded(); };
+    img.onerror = function () {
+      if (this.src.indexOf("zestafona_map.png") !== -1) this.src = "zestafona-map.png";
+    };
+    board.appendChild(img);
+  } else {
+    const note = document.createElement("div");
+    note.className = "map-missing";
+    note.textContent = "No uploaded sheet for " + name + ". Bakurani uses bakurani-map.png. Ozeti uses ozeti-map.png.";
+    board.appendChild(note);
+  }
+  applyZoom();
+  paintMarkers();
+}
+function clearCardFields() {
+  document.getElementById("gunName").value = "";
+  document.getElementById("gunX").value = "";
+  document.getElementById("gunY").value = "";
+  document.getElementById("centerX").value = "";
+  document.getElementById("centerY").value = "";
+  document.getElementById("topX").value = "";
+  document.getElementById("topY").value = "";
+  targets.length = 0;
+}
+function loadMapCard() {
+  const key = slug();
+  const name = document.getElementById("mapName").value.trim();
+  const file = key + "-mortar-card.json";
+  return fetch(file).then(function (res) {
+    if (!res.ok) throw new Error("missing");
+    return res.json();
+  }).then(function (card) {
+    if (card.mapName && card.mapName.toLowerCase() !== name.toLowerCase()) {
+      clearCardFields();
+      applyFrame();
+      showMap();
+      render();
+      setStatus("That file is for " + card.mapName + ", not " + name + ". Mortar and solutions cleared.");
+      return;
+    }
+    applyCard(card);
+    setStatus("Loaded " + file + " for " + name + ".");
+  }).catch(function () {
+    const card = readStore()[key];
+    if (card) {
+      applyCard(card);
+      setStatus("Loaded the saved " + name + " card from this browser.");
+      return;
+    }
+    clearCardFields();
+    applyFrame();
+    showMap();
+    render();
+    setStatus("No card for " + name + ". Put " + file + " in this folder, or Save one in this browser.");
+  });
+}
+document.getElementById("mapName").addEventListener("change", function () {
+  closePop();
+  loadMapCard();
+});
+["centerY", "centerX", "topX", "topY", "frameLeft", "frameTop", "frameSpan", "gunName"].forEach(function (id) {
+  document.getElementById(id).addEventListener("input", function () {
+    paintMarkers();
+    const cx = parseCoord(document.getElementById("centerX").value);
+    const cy = parseCoord(document.getElementById("centerY").value);
+    const tx = parseCoord(document.getElementById("topX").value);
+    const ty = parseCoord(document.getElementById("topY").value);
+    if (cx == null || cy == null || tx == null || ty == null) return;
+    const radius = Math.hypot(tx - cx, ty - cy);
+    setStatus("Combat circle set. Radius " + Math.round(radius * 100) + " m.");
+  });
+});
+document.getElementById("zoomIn").addEventListener("click", function () {
+  stepZoom(1, pointer);
+});
+document.getElementById("zoomOut").addEventListener("click", function () {
+  stepZoom(-1, pointer);
+});
+document.querySelector(".map-scroll").addEventListener("wheel", function (e) {
+  e.preventDefault();
+  pointer = { x: e.clientX, y: e.clientY };
+  stepZoom(e.deltaY < 0 ? 1 : -1, pointer);
+}, { passive: false });
+document.querySelector(".map-scroll").addEventListener("mousemove", function (e) {
+  pointer = { x: e.clientX, y: e.clientY };
+});
+document.getElementById("mapBoard").addEventListener("contextmenu", function (e) {
+  e.preventDefault();
+  const coord = gridFromEvent(e);
+  if (!coord) return;
+  openPop(e, coord);
+});
+(function () {
+  const scroll = document.querySelector(".map-scroll");
+  let drag = null;
+  scroll.addEventListener("mousedown", function (e) {
+    if (e.button !== 0) return;
+    if (e.target.closest("#mapPop")) return;
+    closePop();
+    drag = { x: e.clientX, y: e.clientY, left: scroll.scrollLeft, top: scroll.scrollTop };
+    scroll.classList.add("dragging");
+    e.preventDefault();
+  });
+  window.addEventListener("mousemove", function (e) {
+    if (!drag) return;
+    scroll.scrollLeft = drag.left - (e.clientX - drag.x);
+    scroll.scrollTop = drag.top - (e.clientY - drag.y);
+  });
+  window.addEventListener("mouseup", function () {
+    drag = null;
+    scroll.classList.remove("dragging");
+  });
+})();
+showMap();
+loadMapCard();
+
+
+</script>
+</body>
+</html>

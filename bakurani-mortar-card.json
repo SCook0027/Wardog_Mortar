@@ -1,0 +1,43 @@
+{
+  "mapName": "Bakurani",
+  "gunName": "base loc",
+  "gunX": "80.20",
+  "gunY": "75.18",
+  "centerY": "71.94",
+  "topX": "79.69",
+  "topY": "76.85",
+  "frameLeft": "67.53",
+  "frameTop": "83.02",
+  "frameSpan": "26.80",
+  "centerX": "79.69",
+  "targets": [
+    {
+      "name": "Tower 2",
+      "x": 77.16,
+      "y": 69.95,
+      "gx": 80.2,
+      "gy": 75.18
+    },
+    {
+      "name": "Tower 3",
+      "x": 77.2,
+      "y": 73.47,
+      "gx": 80.2,
+      "gy": 75.18
+    },
+    {
+      "name": "Tower 4",
+      "x": 83.6,
+      "y": 72.81,
+      "gx": 80.2,
+      "gy": 75.18
+    },
+    {
+      "name": "Tower 5",
+      "x": 82.14,
+      "y": 68.38,
+      "gx": 80.2,
+      "gy": 75.18
+    }
+  ]
+}
