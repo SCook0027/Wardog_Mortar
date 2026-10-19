@@ -1,0 +1,25 @@
+{
+  "mapName": "Bakurani",
+  "image": "Bakurani.webp",
+  "centers": [
+    { "name": "Default", "x": 79.59, "y": 71.53, "grid": "8-8" },
+    { "name": "Farmland", "x": 81.05, "y": 69.08, "grid": "9-7" },
+    { "name": "Lumberyard", "x": 82.17, "y": 71.53, "grid": "9-8" }
+  ],
+  "targets": [
+    { "name": "Tower 1", "x": 80.25, "y": 69.60, "grid": "9-7" },
+    { "name": "Tower 2", "x": 77.08, "y": 69.82, "grid": "8-7" },
+    { "name": "Tower 3", "x": 77.00, "y": 73.02, "grid": "8-8" },
+    { "name": "Tower 4", "x": 83.30, "y": 72.69, "grid": "9-8" },
+    { "name": "Tower 5 L", "x": 82.01, "y": 67.34, "grid": "9-7" },
+    { "name": "Tower 7", "x": 85.29, "y": 67.56, "grid": "9-7" },
+    { "name": "Sunflowers Tower", "x": 84.42, "y": 73.26, "grid": "9-8" },
+    { "name": "Containers And Factory", "x": 79.01, "y": 70.99, "grid": "8-8" },
+    { "name": "Hill Town", "x": 78.71, "y": 66.67, "grid": "8-7" },
+    { "name": "Bridge Hill", "x": 77.37, "y": 68.74, "grid": "8-7" },
+    { "name": "Sunflower Church", "x": 84.37, "y": 71.71, "grid": "9-8" },
+    { "name": "Mindori Village", "x": 89.16, "y": 69.77, "grid": "9-7" },
+    { "name": "Green Mountain", "x": 72.80, "y": 70.37, "grid": "8-8" },
+    { "name": "Pond", "x": 80.16, "y": 63.17, "grid": "9-7" }
+  ]
+}
